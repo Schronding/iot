@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 
 /* 
 Constantes */
@@ -80,21 +81,61 @@ void areaHexagon(){
 
 int factorial(){
     int iterations;
-    printf("\nHow many iterations do you want?\t");
+    printf("\nWhat is the number you want to calculate its factorial?\t");
     scanf("%i", &iterations);
     if (iterations < 0) {
         printf("\nNot a valid option.\nFactorials are defined only for positive integers\n");
         return 0;
     }
+
+    unsigned long long fac_arr[iterations];
+    for (int i = 0; i < iterations; i++){
+        fac_arr[i] = 0;
+    }
+
+
     unsigned long long int total = 1; 
+
     while (iterations > 1){
         total *= iterations;
         iterations--;
+        // fac_arr[iterations] = total;
     }
+
     printf("\nYour total is %lli\n", total);
+
+    /*for (int i = 0; i < iterations; i++){
+        printf("\nValue in index %i is %lli\n", i, fac_arr[i]);
+    }*/
+}
+
+#define POSITIVE 1 
+#define NEGATIVE 0 
+
+void sine(){
+    double x;
+    double calc_x; 
+    int appr_terms = 6;
+    printf("\nThis program calculates sin(x).");
+    printf("\nIntroduce your desired value of x:\t");
+    scanf("%d", x);
+    for (int i = 1; i <= 13; i += 2){
+        calc_x += (long long int)(pow(calc_x, i) / factorial(i));
+        if (i % 2 == 1){
+            calc_x *= 1; 
+        }
+        else{
+            calc_x *= -1; 
+        }
+    }
+
+    double math_sin = sin(x);
+    printf("\n Library: %d | Approximation: %d | Error: %d", math_sin, calc_x, math_sin - calc_x);
 }
 
 int main(){
+    sine();
+    return 0;
     factorial();
     return 0;
 
