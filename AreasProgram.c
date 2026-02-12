@@ -11,14 +11,8 @@ Variables globales
 Prototipo de funciones
 */
 
-int main(){
+char menu(){
     char opt;
-    float side;
-    float side2;
-    float radius;
-    short int flag = TRUE; 
-
-    do {
     printf("Ingresa una opcion: ");
     printf("\n1. Area cuadrado");
     printf("\n2. Area circulo");
@@ -28,53 +22,104 @@ int main(){
     printf("\n6. Salir");
     printf("\nQue deseas hacer?: \n");
     scanf("%c", &opt);
-    
-    
-        switch (opt){
+}
+
+void areaSquare(){
+    float side;
+    printf("\nArea Cuadrado \n");
+    printf("Ingresa el lado: ");
+    scanf("%f", &side);
+    printf("\nArea es: %.4f", side * side);
+    printf("\n");
+}
+
+void areaCircle(){
+    float radius;
+    printf("\nArea Circulo \n");
+    printf("Ingresa el radio: ");
+    scanf("%f", &radius);
+    printf("\nArea es: %.4f", 3.1415 * (radius * radius));
+    printf("\n");
+}
+
+void areaRectangle(){
+    float side;
+    float side2;
+    printf("\nArea Rectangulo \n");
+    printf("Ingresa el ancho: ");
+    scanf("%f", &side2);
+    printf("Ingresa la altura: ");
+    scanf("%f", &side);
+    printf("\nArea es: %.4f", side * side2);
+    printf("\n");
+}
+
+void areaEqTriangle(){
+    float width;
+    float height; 
+    printf("\nArea Triangulo Equilatero \n");
+    printf("Ingresa el ancho: ");
+    scanf("%f", &width);
+    printf("Ingresa la altura: ");
+    scanf("%f", &height);
+    printf("\nArea es: %.4f", width * height / 2);
+    printf("\n");
+}
+
+void areaHexagon(){
+    float perimeter;
+    float apotema;
+    printf("\nArea Hexagono \n");
+    printf("Ingresa el perimetro: ");
+    scanf("%f", &perimeter);
+    printf("Ingresa el apotema: ");
+    scanf("%f", &apotema);
+    printf("\nArea es: %.4f", perimeter * apotema / 2);
+    printf("\n");
+}
+
+int factorial(){
+    int iterations;
+    printf("\nHow many iterations do you want?\t");
+    scanf("%i", &iterations);
+    if (iterations < 0) {
+        printf("\nNot a valid option.\nFactorials are defined only for positive integers\n");
+        return 0;
+    }
+    unsigned long long int total = 1; 
+    while (iterations > 1){
+        total *= iterations;
+        iterations--;
+    }
+    printf("\nYour total is %lli\n", total);
+}
+
+int main(){
+    factorial();
+    return 0;
+
+    short int flag = TRUE; 
+
+    do {
+        switch (menu()){
             case '1':
-                printf("\nArea Cuadrado \n");
-                printf("Ingresa el lado: ");
-                scanf("%f", &side);
-                printf("\nArea es: %.4f", side * side);
-                printf("\n");
+                areaSquare();
                 break;
             
             case '2':
-                printf("\nArea Circulo \n");
-                printf("Ingresa el radio: ");
-                scanf("%f", &radius);
-                printf("\nArea es: %.4f", 3.1415 * (radius * radius));
-                printf("\n");
+                areaCircle();
                 break;
             
             case '3':
-                printf("\nArea Rectangulo \n");
-                printf("Ingresa el ancho: ");
-                scanf("%f", &side2);
-                printf("Ingresa la altura: ");
-                scanf("%f", &side);
-                printf("\nArea es: %.4f", side * side2);
-                printf("\n");
+                areaRectangle();
                 break;
             
             case '4':
-                printf("\nArea Triangulo Equilatero \n");
-                printf("Ingresa el ancho: ");
-                scanf("%f", &side);
-                printf("Ingresa la altura: ");
-                scanf("%f", &side2);
-                printf("\nArea es: %.4f", side * side2 / 2);
-                printf("\n");
+                areaEqTriangle();
                 break;
             
             case '5':
-                printf("\nArea Hexagono \n");
-                printf("Ingresa el perimetro: ");
-                scanf("%f", &side);
-                printf("Ingresa el apotema: ");
-                scanf("%f", &radius);
-                printf("\nArea es: %.4f", side * radius / 2);
-                printf("\n");
+                areaHexagon();
                 break;
             
             case '6':
