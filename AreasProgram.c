@@ -104,6 +104,10 @@ int factorial(int iterations){
 
     printf("\nYour total is %lli\n", total);
 
+    /* I was missing the return statement! Without it the function prints but never gives
+    the value back to whoever called it, so the division in sine() was using garbage. */
+    return total;
+
     /*for (int i = 0; i < iterations; i++){
         printf("\nValue in index %i is %lli\n", i, fac_arr[i]);
     }*/
@@ -116,27 +120,51 @@ int factorial(int iterations){
 sin(x) function. One radian is the angle formed when the arc length equals the radius. In order to make the program work I first
 need to do the conversion from degrees to radians. */
 
+    /* I was using %ld which is for long int. For long double the correct specifier is %Lf. 
+    That's why x always had garbage — scanf was writing the bytes in the wrong format. */
+
+    /* The Taylor series for sin(x) is: x - x^3/3! + x^5/5! - x^7/7! + ...
+    Each term can be computed from the previous one without calling pow() and factorial()
+    every time. The recurrence is: term_next = term_prev * (-x*x) / (i*(i-1))
+    This avoids overflow in factorial and keeps everything in floating point. 
+    
+    My original mistakes were:
+    1. I was using calc_x (the accumulator) inside pow() instead of the original x,
+       so each iteration fed a corrupted value into the next.
+    2. I was casting to (long long int) which destroyed the decimal precision.
+    3. The sign logic (multiply by 1 or -1 after adding) was wrong — the sign
+       needs to be part of each term BEFORE adding it, not applied to the whole sum.
+    4. factorial() had no return statement so division used garbage. */
+
+        /* I was using %ld and %lli for doubles and long doubles — those are for integers.
+    For double use %f, for long double use %Lf. That's why everything printed as 0. */
+
 void sine(){
     long double x;
     long double calc_x; 
-    int appr_terms = 6;
     printf("\nThis program calculates sin(x).");
     printf("\nIntroduce your desired value of x in radians:\t");
-    scanf("%ld", &x);
-    for (int i = 1; i <= 13; i += 2){
-        calc_x += (long long int)(pow(calc_x, i) / factorial(i));
-        printf("Index: %i \t| \t Value: %lli", i, calc_x);
-        if (i % 2 == 1){
-            calc_x *= 1; 
-        }
-        else{
-            calc_x *= -1; 
-        }
+    scanf("%Lf", &x);
+
+
+    calc_x = x;              /* first term of the series is just x */
+    long double term = x;    /* track each term separately */
+    for (int i = 3; i <= 13; i += 2){
+        term *= -x * x / (i * (i - 1));   /* derive next term from previous */
+        calc_x += term;
+        printf("Term i=%i \t| \t Partial sum: %Lf\n", i, calc_x);
     }
 
-    double math_sin = sin(x);
-    printf("\n Library: %ld | Approximation: %ld | Error: %ld \n", math_sin, calc_x, math_sin - calc_x);
+    double math_sin = sin((double)x);
+    printf("\n Library: %f | Approximation: %Lf | Error: %Lf \n",
+        math_sin, calc_x, (long double)math_sin - calc_x);
 }
+
+/* There are so many things about this program that I don't understand. When I changed 'calc_x' for long int the approximation
+of the library turn to 0, but how is that even possible? I calculate math_sin directly with 'x'. I thought that maybe my mistake
+was that I was not initializing the value of 'calc_x', that is why it was always on zero, but even now that doesn't seem to work.
+Even if the library is incorrect why am I not getting any value in error? And if all my values are 0 on my terminal, why at the
+end the approximation is equal to one? */
 
 /* I am getting a segmentation fault, which seems to be common. It seems that it is a runtime error that occurs when a program
 tries to access memory it's not allowed to access. Common causes are
