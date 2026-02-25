@@ -30,10 +30,47 @@
 //   gcc 25Feb2026.c MeanAndRandom.c Utils.c -o 25Feb2026.bin -lm
 // -----------------------------------------------------------------------------
 
+// -----------------------------------------------------------------------------
+// STRUCT ACCESS: "." vs "->"
+// -----------------------------------------------------------------------------
+// Both operators access a struct member. The ONLY difference is what's on
+// the left side:
+//
+//   lm35.mean      →  lm35 is a struct (direct value on the stack)
+//   lm35->mean     →  lm35 is a POINTER to a struct (data lives on the heap)
+//
+// "->" is just syntactic sugar:  lm35->mean  ==  (*lm35).mean
+// The compiler generates identical machine code — zero performance difference.
+//
+// THE REAL TRADEOFF IS STACK vs HEAP, not "." vs "->":
+//
+//   Stack  (uses ".")
+//     + Fast: data is nearby in memory, very cache-friendly
+//     + Automatic cleanup when the function returns
+//     - Limited size (~1–8 MB total)
+//     - Copying a large struct to another function is expensive (full copy)
+//
+//   Heap   (uses "->", requires malloc/free)
+//     + Virtually unlimited size
+//     + Passing a pointer to a function is always cheap (just 8 bytes)
+//     + Data can outlive the function that created it
+//     - Slightly slower if data is not in CPU cache (pointer dereference)
+//     - YOU must free() it manually — forgetting causes memory leaks
+//
+// Rule of thumb:
+//   Small, short-lived struct  →  stack + "."
+//   Large struct, dynamic data, or data shared across functions  →  heap + "->"
+//
+// Example from this file:
+//   LM35.mean           →  LM35 is a sensor struct on the stack
+//   LM35.mediciones     →  LM35 is on the stack, but mediciones is a float*
+//                          pointing to heap memory allocated with malloc()
+// -----------------------------------------------------------------------------
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "Utils.h"
-#include "MeanAndRandom.h"
+#include "Statistics.h"
 #include <math.h>   // Requires -lm at link time (not part of libc)
 
 typedef struct{
@@ -42,6 +79,8 @@ typedef struct{
     float standard_deviation; 
 
 } sensor; 
+
+
 
 int main(){
     int n = 100;
@@ -53,11 +92,7 @@ int main(){
     }
 
     LM35.mean = get_mean(LM35.mediciones, n);
-    float total = 0.0;
-    for (c = 0; c < n; c++){
-        total += pow((LM35.mediciones[c] - LM35.mean), 2);
-    }
-    LM35.standard_deviation = sqrt(total / n);
+    LM35.standard_deviation = standard_deviation_f(LM35.mediciones, LM35.mean, n); 
     printf("\nThe mean is: %f", LM35.mean);
     printf("\nThe standard deviation is: %f", LM35.standard_deviation);
     printf("\n");
