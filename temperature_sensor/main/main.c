@@ -34,17 +34,9 @@
  */
 
 const char *TAG = "LM35 Temperature";
-const float temperatura = 3.15;
-const float std_temp = 6.28;
 
 #define LOW 0
 #define HIGH 1
-/* Note: LM35_IN is GPIO 35, but your ADC channel (ADC1_CHAN0) maps to GPIO 32. 
-   You may need to physically connect the LM35 output to GPIO 32, or reconfigure 
-   the ADC channel to match GPIO 35. Check the ESP32 pinout! */
-/* Rewire suggestion based on ESP32 pinout:
-    - Move LEDs away from UART2 pins (GPIO16/17) and SPI clock pin (GPIO18)
-    - Use GPIO25/GPIO26/GPIO27 for stable digital outputs */
 #define COLD_OUT 25
 #define IDEAL_OUT 26
 #define HOT_OUT 27
@@ -53,12 +45,24 @@ const float std_temp = 6.28;
 #define ADC_ATTEN ADC_ATTEN_DB_12
 /* ADC_ATTEN_DB_12: Full range attenuation, covers 0–3.3V at 12-bit resolution (0-4095).
    Other options: DB_0 (0–1.1V), DB_2_5 (0–1.5V), DB_6 (0–2.2V). 
-   Choose based on your LM35 voltage range. */
+   Choose based on your LM35 voltage range. 
+			I wonder what ATTEN means... could it be 
+			attenuation? DB might come from decibels
+			but if that is true then why when the DB has a
+			lower number I get lower voltage? Shouldn't 
+			that be the other way around?*/
 /* Temperature calibration:
     - If terminal temperature is lower/higher than real ambient, tune TEMP_CAL_OFFSET_C.
     - 5V jumper powers the expansion board, but ESP32 ADC input is still 0-3.3V max. */
 #define TEMP_CAL_GAIN 1.0f
 #define TEMP_CAL_OFFSET_C 9.0f
+/* I feel that the LM35 than Jean gave me might
+be a bit off, but Solis told me that local and
+ambient temperatures are different, but I feel
+than 9 centigrades is just way too much. Also
+I wonder if I need the f at the end of this
+define clause to denote explicitly that it is
+a float*/
 
 adc_oneshot_unit_handle_t adc1_handle;
 /* ADC handle: stores the initialized ADC unit. Will be populated by config_ADC() 
@@ -125,10 +129,28 @@ typedef struct
 
 void app_main(void)
 {
-    /* You can switch to 5 seconds by changing this to 5 */
     const int window_seconds = 5;
     const int sample_period_ms = 200;
+				/* While I think it could be better to define
+				'sample_period_ms' by window_seconds I wonder if
+				the definition of it as a constant makes so it 
+				is preferable to have these two separated. 
+				I feel that the const clause shouldn't be a 
+				problem, as I imagine that having a constant 
+				means that a value is never reassigned during 
+				runtime, not that I cannot use other variables
+				to define this constant */
     const int n_samples = (window_seconds * 1000) / sample_period_ms;
+				/* I think I understand it now: it is not that 
+				the two variables mean the same, but that the
+				sample period is simply how long my samples are
+				going to be, not the result of dividing a 
+				second between the number of seconds in the
+				window... now that I state it like that it 
+				sounds obvious, but 1000ms/5 casually gave 
+				200ms. I don't think I should make it shorter
+				though, as then the ADC won't have the time
+				to accurately translate the singal*/ 
     float temp_samples[n_samples];
     int c;
     float mean_temp;
