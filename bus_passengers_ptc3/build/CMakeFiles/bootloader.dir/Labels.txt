@@ -1,0 +1,13 @@
+# Target labels
+ bootloader
+# Source files and their labels
+/home/schronding/repos/iot/bus_passengers_ptc3/build/CMakeFiles/bootloader
+/home/schronding/repos/iot/bus_passengers_ptc3/build/CMakeFiles/bootloader.rule
+/home/schronding/repos/iot/bus_passengers_ptc3/build/CMakeFiles/bootloader-complete.rule
+/home/schronding/repos/iot/bus_passengers_ptc3/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule
+/home/schronding/repos/iot/bus_passengers_ptc3/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
+/home/schronding/repos/iot/bus_passengers_ptc3/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
+/home/schronding/repos/iot/bus_passengers_ptc3/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
+/home/schronding/repos/iot/bus_passengers_ptc3/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
+/home/schronding/repos/iot/bus_passengers_ptc3/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
+/home/schronding/repos/iot/bus_passengers_ptc3/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule

@@ -97,9 +97,13 @@ void app_main(void)
             passenger_count++;
             update_occupancy_leds(passenger_count);
             ESP_LOGI(TAG, "Passenger detected. Count: %d", passenger_count);
+            
+            if (passenger_count > 77 && passenger_count < 155) {
+                ESP_LOGW(TAG, "More than half the capacity filled. YELLOW LED active.");
+            }
 
             if (passenger_count > 155) {
-                ESP_LOGW(TAG, "Capacity exceeded (>%d). RED LED active.", 155);
+                ESP_LOGE(TAG, "Capacity exceeded (>%d). RED LED active.", 155);
             }
 
             waiting_for_release = true;

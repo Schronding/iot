@@ -34,7 +34,7 @@
  */
 
 const char *TAG = "LM35 Temperature";
-
+adc_oneshot_unit_handle_t adc1_handle;
 #define LOW 0
 #define HIGH 1
 #define COLD_OUT 25
@@ -64,7 +64,6 @@ I wonder if I need the f at the end of this
 define clause to denote explicitly that it is
 a float*/
 
-adc_oneshot_unit_handle_t adc1_handle;
 /* ADC handle: stores the initialized ADC unit. Will be populated by config_ADC() 
    and used later in get_ADC_value() calls. */
 
