@@ -13,5 +13,6 @@
     "--background-index",
     "--query-driver=**",
     "--compile-commands-dir=/home/schronding/repos/iot/timer_example_pc4/build"
-  ]
+  ],
+  "idf.flashType": "UART"
 }

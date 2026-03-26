@@ -10,19 +10,29 @@
 #include "driver/gpio.h"
 
 static const char *TAG = "Utils";
-TimerHandle_t xTimer;
+static TimerHandle_t xTimer;
+
+#define LM35_ADC_UNIT ADC_UNIT_2
+#define LM35_ADC_CHANNEL ADC_CHANNEL_8 /* GPIO25 on ESP32 maps to ADC2_CHANNEL_8 */
+#define ADC_ATTEN ADC_ATTEN_DB_12
 
 esp_err_t config_ADC(){
 	adc_oneshot_unit_init_cfg_t init_config1 = {
-		.unit_id = ADC_UNIT_1,
+        .unit_id = LM35_ADC_UNIT,
 	};
-	adc_oneshot_new_unit(&init_config1, &adc1_handle);
+    esp_err_t ret = adc_oneshot_new_unit(&init_config1, &adc1_handle);
+    if (ret != ESP_OK) {
+        return ret;
+    }
 	
 	adc_oneshot_chan_cfg_t config = {
 		.bitwidth = ADC_BITWIDTH_DEFAULT,
 		.atten = ADC_ATTEN,
 	};
-	adc_oneshot_config_channel(adc1_handle, ADC1_CHAN0, &config);
+    ret = adc_oneshot_config_channel(adc1_handle, LM35_ADC_CHANNEL, &config);
+    if (ret != ESP_OK) {
+        return ret;
+    }
 	
 	return ESP_OK;
 	
@@ -31,25 +41,27 @@ esp_err_t config_ADC(){
 // adc_oneshot_unit_handle_t adc1_handle;
 /* Having this variable here (`adc1_handle`) doesn't seem well. I think I should give it as
 an argument for the function in the `main.c` file */
-#define ADC1_CHAN0 ADC_CHANNEL_4 
-#define ADC_ATTEN ADC_ATTEN_DB_12
 
 esp_err_t get_ADC_value(float *temperature_out, adc_oneshot_unit_handle_t handler){
     static int adc_raw;
-    static float voltage;
+    static float voltage_mv;
 
     float TEMP_CAL_GAIN = 1.0;
     float TEMP_CAL_OFFSET_C = 0.0;
-	adc_oneshot_read(adc1_handle, ADC1_CHAN0, &adc_raw);
+	esp_err_t ret = adc_oneshot_read(handler, LM35_ADC_CHANNEL, &adc_raw);
+	if (ret != ESP_OK) {
+		return ret;
+	}
 	
-	voltage = (adc_raw * 3.3/4095.0);
-    *temperature_out = (voltage * 100.0f) * TEMP_CAL_GAIN + TEMP_CAL_OFFSET_C;
+	/* LM35 conversion: 10 mV equals 1 degree C */
+	voltage_mv = (adc_raw * 3300.0f / 4095.0f);
+    *temperature_out = (voltage_mv / 10.0f) * TEMP_CAL_GAIN + TEMP_CAL_OFFSET_C;
 
     return ESP_OK;
 	
 }
 
-int timerId = 1;
+static int timerId = 1;
 /* For what I understand the timerId is just like a serial value in a data base. 
 Where does the array come from? It is that I have an infinite array that counts
 how many loops of the timer have I done? That doesn't sound efficient, as I could
@@ -68,6 +80,7 @@ esp_err_t set_timer(int interval){
                             also a pointer? What does this mean? If it is just a data type for what I 
                             understand no data type returns anything... then why void does exist as a 
                             data type? If it is a function, why I don't have a name or parenthesis?*/
+                            NULL /* We need a 5th parameter here, even if it's NULL, to avoid compiler errors */
                             // vTimerCallback /* Each timer calls the same callback when it expires */
                             /* As I don't think I need the `vTimerCallback` I will comment it for now*/
     );
@@ -128,7 +141,7 @@ void PrintArrayFlo(float arr[], int maxarray){
 void PrintArrayInt(int arr[], int maxarray){
     int c;
     for (c = 0; c < maxarray; c++){
-        printf("\nValue %f in %i index", arr[c], c);
+        printf("\nValue %d in %i index", arr[c], c);
     }
 
     printf("\n");
@@ -140,6 +153,8 @@ float MinMax(float arr[], int max_array, char * type){
         return temp_array[0];
     else if (!strcmp(type, "max"))
         return temp_array[max_array - 1];
-    else
+    else {
         printf("\n --- ERROR: Not a valid option --- \n");
+        return 0.0f; /* We must return a float here to satisfy the compiler */
+    }
 }
