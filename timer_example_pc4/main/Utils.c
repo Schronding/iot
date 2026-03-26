@@ -9,6 +9,9 @@
 #include "esp_adc/adc_oneshot.h"
 #include "driver/gpio.h"
 
+static const char *TAG = "Utils";
+TimerHandle_t xTimer;
+
 esp_err_t config_ADC(){
 	adc_oneshot_unit_init_cfg_t init_config1 = {
 		.unit_id = ADC_UNIT_1,
@@ -44,6 +47,42 @@ esp_err_t get_ADC_value(float *temperature_out, adc_oneshot_unit_handle_t handle
 
     return ESP_OK;
 	
+}
+
+int timerId = 1;
+/* For what I understand the timerId is just like a serial value in a data base. 
+Where does the array come from? It is that I have an infinite array that counts
+how many loops of the timer have I done? That doesn't sound efficient, as I could
+store the number of iterations in an int data type quite easily*/
+
+esp_err_t set_timer(int interval){
+    ESP_LOGI(TAG, "Timer init configuration");
+
+    xTimer = xTimerCreate("Timer", /* Just a text name */
+                            (pdMS_TO_TICKS(interval)), /* The timer period in ticks */
+                            pdTRUE, /* The timer will auto-reload themselves when they expire */
+                            /* What does pdTRUE mean? */
+                            (void *)timerId, /* Assign each timer a unique id equal to its array index */
+                            /* I don't understand here why the timer requires an "array index". 
+                            The syntax looks quite a bit alien to me... a void function that is 
+                            also a pointer? What does this mean? If it is just a data type for what I 
+                            understand no data type returns anything... then why void does exist as a 
+                            data type? If it is a function, why I don't have a name or parenthesis?*/
+                            // vTimerCallback /* Each timer calls the same callback when it expires */
+                            /* As I don't think I need the `vTimerCallback` I will comment it for now*/
+    );
+    if (xTimer == NULL){
+        /* The timer was not created */
+        ESP_LOGE(TAG, "The timer was not created");
+    }
+    else{
+        if(xTimerStart(xTimer, 0) != pdPASS){
+            /* The timer could not be set into the active state */
+            ESP_LOGE(TAG, "The timer could not be set into the active state");
+        }
+    }
+
+    return ESP_OK;
 }
 
 int linear_search(float arr[], float value, int max_array){

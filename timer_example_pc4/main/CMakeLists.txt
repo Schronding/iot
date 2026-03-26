@@ -1,2 +1,2 @@
-idf_component_register(SRCS "timer_example.c" "Utils.c" "Statistics.c" "main.c"
+idf_component_register(SRCS "main.c" "Utils.c" "Statistics.c"
                     INCLUDE_DIRS ".")
