@@ -57,8 +57,6 @@ esp_err_t get_ADC_value(float *temperature_out, adc_oneshot_unit_handle_t handle
 	voltage_mv = (adc_raw * 3300.0f / 4095.0f);
     *temperature_out = (voltage_mv / 10.0f) * TEMP_CAL_GAIN + TEMP_CAL_OFFSET_C;
 
-    vTaskDelay(200); 
-
     return ESP_OK;
 	
 }
