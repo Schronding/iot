@@ -26,6 +26,7 @@ It is interesting to me that it describes a structure */
 
 
 static float last_average_temperature = 0.0f;
+static float last_average_std = 0.0f;
 
 /* The array where I will store all the samples when they're already converted. */
 static float adc_samples[SAMPLES_TAKEN];
@@ -71,7 +72,9 @@ void get_samples(void){
 
     if (valid_samples > 0) {
         last_average_temperature = get_mean(adc_samples, valid_samples);
-        ESP_LOGI(TIMER_TAG, "Average updated after IR block: %.2f C (%d samples)", last_average_temperature, valid_samples);
+        last_average_std = standard_deviation_f(adc_samples, valid_samples, SAMPLES_TAKEN - 15);
+        ESP_LOGI(TIMER_TAG, "Average updated after IR block: %.2f C (%d samples); Standard deviation: %.2f", last_average_temperature, valid_samples, 
+        last_average_std);
     } else {
         ESP_LOGW(TIMER_TAG, "No valid samples in this batch. Keeping previous average.");
     }
