@@ -12,8 +12,8 @@
 static const char *TAG = "Utils";
 static TimerHandle_t xTimer;
 
-#define LM35_ADC_UNIT ADC_UNIT_2
-#define LM35_ADC_CHANNEL ADC_CHANNEL_8 /* GPIO25 on ESP32 maps to ADC2_CHANNEL_8 */
+#define LM35_ADC_UNIT ADC_UNIT_1
+#define LM35_ADC_CHANNEL ADC_CHANNEL_6 /* GPIO34 on ESP32 maps to ADC1_CHANNEL_6 */
 #define ADC_ATTEN ADC_ATTEN_DB_12
 
 esp_err_t config_ADC(){

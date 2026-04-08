@@ -10,7 +10,7 @@
 
 // Variables
 #define INFRARED_IN 32
-#define LM35_IN 25
+#define LM35_IN 34
 #define TRUE 1
 #define FALSE 0
 static const char *TIMER_TAG = "Timer";
@@ -50,7 +50,7 @@ static void ten_second_timer_cb(TimerHandle_t xTimer)
 {
     (void)xTimer;
 
-    ESP_LOGI(TIMER_TAG, "Last average temperature (10s timer): %.2f C", last_average_temperature);
+    ESP_LOGI(TIMER_TAG, "Last average temperature (10s timer): %.2f C, Std Dev: %.2f C", last_average_temperature, last_average_std);
 }
 
 void get_samples(void){
@@ -72,9 +72,8 @@ void get_samples(void){
 
     if (valid_samples > 0) {
         last_average_temperature = get_mean(adc_samples, valid_samples);
-        last_average_std = standard_deviation_f(adc_samples, valid_samples, SAMPLES_TAKEN - 15);
-        ESP_LOGI(TIMER_TAG, "Average updated after IR block: %.2f C (%d samples); Standard deviation: %.2f", last_average_temperature, valid_samples, 
-        last_average_std);
+        last_average_std = standard_deviation_f(adc_samples, last_average_temperature, valid_samples);
+        ESP_LOGI(TIMER_TAG, "Average updated after IR block: %.2f C (%d samples); Standard deviation: %.2f", last_average_temperature, valid_samples, last_average_std);
     } else {
         ESP_LOGW(TIMER_TAG, "No valid samples in this batch. Keeping previous average.");
     }
