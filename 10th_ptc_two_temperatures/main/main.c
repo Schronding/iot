@@ -25,7 +25,7 @@ I assume I am practically obligated to use this*/
 #define TEMP_CAL_GAIN 1.0f
 #define TEMP_CAL_OFFSET_C 9.0f     
 
-#define UART_PORT_NUM      UART_NUM_1
+#define UART_PORT_NUM      UART_NUM_0
 #define UART_BAUD_RATE     115200
 #define UART_TXD           1
 #define UART_RXD           3
@@ -79,12 +79,12 @@ esp_err_t get_ADC_value(float *temperature_out){
 	
 }
 
-static const char *TAG = "DHT_XX_TEST";
-
 /* It seems that indeed every "task" is in reality a whole function*/
 void dht_temp_and_hum_task(void *pvParameters)
 {
     (void)pvParameters;
+    float humidity = 0.0f;
+    float temperature = 0.0f;
 
     while (1)
     {
@@ -92,13 +92,8 @@ void dht_temp_and_hum_task(void *pvParameters)
 
         if (res == ESP_OK)
         {
-            ESP_LOGI(TAG, "%.1f,%.1f", temperature, humidity);
-            int len = sprintf(uart_msg, "%.1f,%.1f\r\n", temperature, humidity);
-            uart_write_bytes(UART_PORT_NUM, uart_msg, len);
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Sensor read error (Code: %d)", res);
+            dht22_temperature = temperature;
+            dht22_humidity = humidity;
         }
 
         vTaskDelay(pdMS_TO_TICKS(2000));
@@ -120,28 +115,30 @@ void led_signal_task(void *pvParameters)
 
 void lm35_temp_task(void *pvParameters){
     (void)pvParameters;
-    float temperature;
-    char uart_msg[64];
-
     config_ADC(); 
     while(1){
         get_ADC_value(&lm35_temperature); /* I assume I will not put a delay here
         As I don't care that I get all the values correctly, just that I get 
         one... yet what scares me is that by trying to read too quickly I will
         always get incorrect reads */
-        vtaskDelay(pdm_TO_TICKS(200));
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
-void print_signals_task(*pvParameters){
+void print_signals_task(void *pvParameters){
+    (void)pvParameters;
     char uart_msg[64];
-    ESP_LOGI(TAG, "%.1f,%.1f,%.1f", lm35_temperature, dht22_temperature, dht22_humidity);
-    int len = sprintf(uart_msg, "%.1f,%.1f\r\n", temperature);
-    /* It is so interesting that it seems the serial message doesn't gets
-    displayed on the terminal by the default, or that is what I imagine as 
-    the double "printing" funcion (ESP_LOGI and uart_write_bytes) are being
-    used simultaneously. */
-    uart_write_bytes(UART_PORT_NUM, uart_msg, len);
+    while (1) {
+        int len = snprintf(uart_msg, sizeof(uart_msg), "%.1f,%.1f,%.1f\r\n", lm35_temperature, dht22_temperature, dht22_humidity);
+        /* It is so interesting that it seems the serial message doesn't gets
+        displayed on the terminal by the default, or that is what I imagine as 
+        the double "printing" funcion (ESP_LOGI and uart_write_bytes) are being
+        used simultaneously. */
+        if (len > 0) {
+            uart_write_bytes(UART_PORT_NUM, uart_msg, len);
+        }
+        vTaskDelay(pdMS_TO_TICKS(5000));
+    }
 
 }
 
@@ -166,6 +163,7 @@ void app_main(void)
     ESP_ERROR_CHECK(uart_driver_install(UART_PORT_NUM, BUF_SIZE * 2, 0, 0, NULL, intr_alloc_flags));
     ESP_ERROR_CHECK(uart_param_config(UART_PORT_NUM, &uart_config));
     ESP_ERROR_CHECK(uart_set_pin(UART_PORT_NUM, UART_TXD, UART_RXD, UART_RTS, UART_CTS));
+    esp_log_level_set("*", ESP_LOG_NONE);
 
     gpio_reset_pin(LED_GPIO);
     gpio_set_direction(LED_GPIO, GPIO_MODE_OUTPUT);
