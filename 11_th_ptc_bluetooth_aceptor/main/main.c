@@ -14,11 +14,15 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
+#include "esp_err.h"
 #include "esp_bt.h"
 #include "esp_bt_main.h"
 #include "esp_gap_bt_api.h"
 #include "esp_bt_device.h"
 #include "esp_spp_api.h"
+#include "driver/gpio.h"
+#include "esp_adc/adc_oneshot.h"
+#include "dht.h"
 
 #include "time.h"
 #include "sys/time.h"
@@ -27,14 +31,34 @@
 #define SPP_SERVER_NAME "SPP_SERVER"
 #define SPP_SHOW_DATA 0
 #define SPP_SHOW_SPEED 1
-#define SPP_SHOW_MODE SPP_SHOW_SPEED    /*Choose show mode: show data or speed*/
+#define SPP_SHOW_MODE SPP_SHOW_DATA    /*Choose show mode: show data or speed*/
 
-static const char local_device_name[] = CONFIG_EXAMPLE_LOCAL_DEVICE_NAME;
+#define SENSOR_TYPE DHT_TYPE_AM2301
+#define ADC1_CHAN0 ADC_CHANNEL_0
+#define IN_DHT22 32
+#define IN_LM35 36
+#define ADC_ATTEN ADC_ATTEN_DB_12
+#define LED_GPIO 2
+#define BASE_STACK_SIZE 1024
+#define TEMP_CAL_GAIN 1.0f
+#define TEMP_CAL_OFFSET_C 9.0f
+
+static const char local_device_name[] = "ESP32_BRAYAN";
 static const esp_spp_mode_t esp_spp_mode = ESP_SPP_MODE_CB;
 static const bool esp_spp_enable_l2cap_ertm = true;
 
+#if (SPP_SHOW_MODE == SPP_SHOW_SPEED)
 static struct timeval time_new, time_old;
 static long data_num = 0;
+#endif
+
+static adc_oneshot_unit_handle_t adc1_handle;
+static int adc_raw;
+static float voltage;
+static float dht22_temperature;
+static float dht22_humidity;
+static float lm35_temperature;
+static bool led_on;
 
 static const esp_spp_sec_t sec_mask = ESP_SPP_SEC_AUTHENTICATE;
 static const esp_spp_role_t role_slave = ESP_SPP_ROLE_SLAVE;
@@ -51,6 +75,7 @@ static char *bda2str(uint8_t * bda, char *str, size_t size)
     return str;
 }
 
+#if (SPP_SHOW_MODE == SPP_SHOW_SPEED)
 static void print_speed(void)
 {
     float time_old_s = time_old.tv_sec + time_old.tv_usec / 1000000.0;
@@ -61,6 +86,103 @@ static void print_speed(void)
     data_num = 0;
     time_old.tv_sec = time_new.tv_sec;
     time_old.tv_usec = time_new.tv_usec;
+}
+#endif
+
+static esp_err_t config_ADC(void)
+{
+    adc_oneshot_unit_init_cfg_t init_config1 = {
+        .unit_id = ADC_UNIT_1,
+    };
+    esp_err_t err = adc_oneshot_new_unit(&init_config1, &adc1_handle);
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    adc_oneshot_chan_cfg_t config = {
+        .bitwidth = ADC_BITWIDTH_DEFAULT,
+        .atten = ADC_ATTEN,
+    };
+    return adc_oneshot_config_channel(adc1_handle, ADC1_CHAN0, &config);
+}
+
+static esp_err_t get_ADC_value(float *temperature_out)
+{
+    esp_err_t err = adc_oneshot_read(adc1_handle, ADC1_CHAN0, &adc_raw);
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    voltage = (adc_raw * 3.3f / 4095.0f);
+    *temperature_out = (voltage * 100.0f) * TEMP_CAL_GAIN + TEMP_CAL_OFFSET_C;
+    return ESP_OK;
+}
+
+static void dht_temp_and_hum_task(void *pvParameters)
+{
+    (void)pvParameters;
+    float humidity = 0.0f;
+    float temperature = 0.0f;
+
+    while (1) {
+        esp_err_t res = dht_read_float_data(SENSOR_TYPE, IN_DHT22, &humidity, &temperature);
+        if (res == ESP_OK) {
+            dht22_temperature = temperature;
+            dht22_humidity = humidity;
+        }
+        vTaskDelay(pdMS_TO_TICKS(2000));
+    }
+}
+
+static void lm35_temp_task(void *pvParameters)
+{
+    (void)pvParameters;
+    if (config_ADC() != ESP_OK) {
+        vTaskDelete(NULL);
+        return;
+    }
+
+    while (1) {
+        get_ADC_value(&lm35_temperature);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
+
+static void spp_send_text(uint32_t handle, const char *text)
+{
+    (void)handle;
+    if (text != NULL && text[0] != '\0') {
+        ESP_LOGI(SPP_TAG, "%s", text);
+    }
+}
+
+static void spp_send_value(uint32_t handle, float value)
+{
+    (void)handle;
+    ESP_LOGI(SPP_TAG, "%.1f", value);
+}
+
+static void spp_handle_command(uint32_t handle, char cmd)
+{
+    switch (cmd) {
+    case 'L':
+    case 'l':
+        led_on = !led_on;
+        gpio_set_level(LED_GPIO, led_on ? 1 : 0);
+        spp_send_text(handle, led_on ? "LED ON" : "LED OFF");
+        break;
+    case 'T':
+    case 't':
+        spp_send_value(handle, dht22_temperature);
+        break;
+    case 'H':
+    case 'h':
+        spp_send_value(handle, dht22_humidity);
+        break;
+    default:
+        spp_send_text(handle, "ERR\r\n");
+        break;
+    }
 }
 
 static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
@@ -101,16 +223,12 @@ static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         break;
     case ESP_SPP_DATA_IND_EVT:
 #if (SPP_SHOW_MODE == SPP_SHOW_DATA)
-        /*
-         * We only show the data in which the data length is less than 128 here. If you want to print the data and
-         * the data rate is high, it is strongly recommended to process them in other lower priority application task
-         * rather than in this callback directly. Since the printing takes too much time, it may stuck the Bluetooth
-         * stack and also have a effect on the throughput!
-         */
-        ESP_LOGI(SPP_TAG, "ESP_SPP_DATA_IND_EVT len:%d handle:%"PRIu32,
-                 param->data_ind.len, param->data_ind.handle);
-        if (param->data_ind.len < 128) {
-            ESP_LOG_BUFFER_HEX("", param->data_ind.data, param->data_ind.len);
+        for (int i = 0; i < param->data_ind.len; ++i) {
+            char cmd = (char)param->data_ind.data[i];
+            if (cmd == '\r' || cmd == '\n' || cmd == ' ' || cmd == '\t') {
+                continue;
+            }
+            spp_handle_command(param->data_ind.handle, cmd);
         }
 #else
         gettimeofday(&time_new, NULL);
@@ -129,7 +247,9 @@ static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
     case ESP_SPP_SRV_OPEN_EVT:
         ESP_LOGI(SPP_TAG, "ESP_SPP_SRV_OPEN_EVT status:%d handle:%"PRIu32", rem_bda:[%s]", param->srv_open.status,
                  param->srv_open.handle, bda2str(param->srv_open.rem_bda, bda_str, sizeof(bda_str)));
+#if (SPP_SHOW_MODE == SPP_SHOW_SPEED)
         gettimeofday(&time_old, NULL);
+#endif
         break;
     case ESP_SPP_SRV_STOP_EVT:
         ESP_LOGI(SPP_TAG, "ESP_SPP_SRV_STOP_EVT");
@@ -250,7 +370,7 @@ void app_main(void)
     esp_spp_cfg_t bt_spp_cfg = {
         .mode = esp_spp_mode,
         .enable_l2cap_ertm = esp_spp_enable_l2cap_ertm,
-        .tx_buffer_size = 0, /* Only used for ESP_SPP_MODE_VFS mode */
+        .tx_buffer_size = 0, 
     };
     if ((ret = esp_spp_enhanced_init(&bt_spp_cfg)) != ESP_OK) {
         ESP_LOGE(SPP_TAG, "%s spp init failed: %s", __func__, esp_err_to_name(ret));
@@ -258,19 +378,23 @@ void app_main(void)
     }
 
 #if (CONFIG_EXAMPLE_SSP_ENABLED == true)
-    /* Set default parameters for Secure Simple Pairing */
     esp_bt_sp_param_t param_type = ESP_BT_SP_IOCAP_MODE;
     esp_bt_io_cap_t iocap = ESP_BT_IO_CAP_IO;
     esp_bt_gap_set_security_param(param_type, &iocap, sizeof(uint8_t));
 #endif
 
-    /*
-     * Set default parameters for Legacy Pairing
-     * Use variable pin, input pin code when pairing
-     */
+
     esp_bt_pin_type_t pin_type = ESP_BT_PIN_TYPE_VARIABLE;
     esp_bt_pin_code_t pin_code;
     esp_bt_gap_set_pin(pin_type, 0, pin_code);
 
     ESP_LOGI(SPP_TAG, "Own address:[%s]", bda2str((uint8_t *)esp_bt_dev_get_address(), bda_str, sizeof(bda_str)));
+
+    gpio_reset_pin(LED_GPIO);
+    gpio_set_direction(LED_GPIO, GPIO_MODE_OUTPUT);
+    gpio_set_level(LED_GPIO, 0);
+    led_on = false;
+
+    xTaskCreate(lm35_temp_task, "lm35_temp", BASE_STACK_SIZE * 3, NULL, 3, NULL);
+    xTaskCreate(dht_temp_and_hum_task, "dht_temp_and_hum", BASE_STACK_SIZE * 3, NULL, 4, NULL);
 }
