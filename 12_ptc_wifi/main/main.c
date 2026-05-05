@@ -148,6 +148,35 @@ static esp_err_t thingspeak_send(esp_http_client_handle_t client, float temperat
     return ESP_OK;
 }
 
+static esp_err_t thingspeak_read_coworker(float *temp, float *hum, float *hi)
+{
+    esp_http_client_config_t config = {
+        .url = "http://api.thingspeak.com/channels/2941224/feeds/last.json?api_key=Z1OY8Z0WQ3RIT2XC",
+        .method = HTTP_METHOD_GET,
+        .timeout_ms = 5000,
+    };
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+    
+    esp_err_t err = esp_http_client_open(client, 0);
+    if (err == ESP_OK) {
+        esp_http_client_fetch_headers(client);
+        char buffer[512] = {0};
+        int read_len = esp_http_client_read(client, buffer, sizeof(buffer) - 1);
+        if (read_len > 0) {
+            buffer[read_len] = '\0';
+            char *p1 = strstr(buffer, "\"field1\":\"");
+            char *p2 = strstr(buffer, "\"field2\":\"");
+            char *p3 = strstr(buffer, "\"field3\":\"");
+            if (p1) sscanf(p1, "\"field1\":\"%f\"", temp);
+            if (p2) sscanf(p2, "\"field2\":\"%f\"", hum);
+            if (p3) sscanf(p3, "\"field3\":\"%f\"", hi);
+        }
+        esp_http_client_close(client);
+    }
+    esp_http_client_cleanup(client);
+    return err;
+}
+
 static void thingspeak_task(void *pvParameters)
 {
     (void)pvParameters;
@@ -187,7 +216,10 @@ static void thingspeak_task(void *pvParameters)
             float humidity = hum_sum / samples;
             float heat_index = hi_sum / samples;
 
-            ESP_LOGI(TAG, "data: %.1f,%.0f,%.0f", temperature, humidity, heat_index);
+            float j_temp = 0.0f, j_hum = 0.0f, j_hi = 0.0f;
+            thingspeak_read_coworker(&j_temp, &j_hum, &j_hi);
+
+            ESP_LOGI(TAG, "data: %.1f,%.0f,%.0f | %.1f,%.0f,%.0f", temperature, humidity, heat_index, j_temp, j_hum, j_hi);
 
             esp_err_t err = thingspeak_send(client, temperature, humidity, heat_index);
             if (err == ESP_OK) {
@@ -195,6 +227,7 @@ static void thingspeak_task(void *pvParameters)
             } else {
                 ESP_LOGE(TAG, "ThingSpeak update failed: %s", esp_err_to_name(err));
             }
+
         } else {
             ESP_LOGW(TAG, "no valid samples");
         }
