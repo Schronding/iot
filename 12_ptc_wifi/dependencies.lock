@@ -1,0 +1,24 @@
+dependencies:
+  dht:
+    dependencies: []
+    source:
+      path: /home/schronding/repos/iot/12_ptc_wifi/core/components/dht
+      type: local
+    version: 1.2.0
+  esp_idf_lib_helpers:
+    dependencies: []
+    source:
+      path: /home/schronding/repos/iot/12_ptc_wifi/core/components/esp_idf_lib_helpers
+      type: local
+    version: 1.4.0
+  idf:
+    source:
+      type: idf
+    version: 5.4.4
+direct_dependencies:
+- esp-idf-lib/dht
+- esp-idf-lib/esp_idf_lib_helpers
+- idf
+manifest_hash: 90a02b8a4e5386a7e385f9c962d2b559d274548c90b30dc02e5a5fbab1ede348
+target: esp32
+version: 2.0.0
