@@ -1,7 +1,7 @@
 #include "connect_wifi.h"
 
-#define EXAMPLE_ESP_WIFI_SSID "MejorEquipo"
-#define EXAMPLE_ESP_WIFI_PASS "qwerty"
+#define EXAMPLE_ESP_WIFI_SSID "PCPumaENESJ"
+#define EXAMPLE_ESP_WIFI_PASS "3n3sJun@M"
 #define EXAMPLE_ESP_MAXIMUM_RETRY 5
 
 /* FreeRTOS event group to signal when we are connected*/

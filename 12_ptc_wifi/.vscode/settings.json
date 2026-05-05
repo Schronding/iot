@@ -3,7 +3,10 @@
   "idf.openOcdConfigs": [
     "board/esp32-wrover-kit-3.3v.cfg"
   ],
-  "idf.port": "detect",
+  "idf.portWin": "COM3",
+  "idf.portLinux": "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A5069RR4-if00-port0",
+  "idf.portMac": "/dev/cu.usbserial-A5069RR4",
+  "idf.port": "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A5069RR4-if00-port0",
   "idf.currentSetup": "/home/schronding/esp/v5.4/esp-idf",
   "idf.customExtraVars": {
     "IDF_TARGET": "esp32"
@@ -13,5 +16,6 @@
     "--background-index",
     "--query-driver=**",
     "--compile-commands-dir=/home/schronding/repos/iot/11_th_ptc_bluetooth_aceptor/build"
-  ]
+  ],
+  "idf.flashType": "UART"
 }

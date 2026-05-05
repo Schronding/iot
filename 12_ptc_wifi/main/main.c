@@ -13,13 +13,14 @@
 #include "esp_wifi.h"
 #include "nvs_flash.h"
 #include "esp_http_client.h"
+#include "driver/gpio.h"
 #include "dht.h"
 
-#define WIFI_SSID "MejorEquipo"
-#define WIFI_PASS "qwerty"
+#define WIFI_SSID "Brayan’s iPhone"
+#define WIFI_PASS "hola66669"
 #define WIFI_MAX_RETRY 5
 
-#define DHT_GPIO GPIO_NUM_36
+#define DHT_GPIO 4 
 #define DHT_TYPE DHT_TYPE_AM2301
 
 #define SAMPLE_INTERVAL_MS 2000
