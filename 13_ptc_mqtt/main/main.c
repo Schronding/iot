@@ -68,7 +68,7 @@ static void mqtt_app_start(void){
     ESP_LOGI(TAG, "Starting MQTT");
 
     esp_mqtt_client_config_t mqtt_cfg = {
-        .broker.address.uri = "mqtt://192.168.100.7:1883",
+        .broker.address.uri = "mqtt://172.20.10.4:1883",
     };
 
     client = esp_mqtt_client_init(&mqtt_cfg);
